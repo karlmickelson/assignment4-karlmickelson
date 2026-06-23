@@ -1,5 +1,6 @@
  #include "threading.h"
 #include <unistd.h>
+#include <syslog.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
@@ -17,29 +18,29 @@ void *threadfunc(void *thread_param)
     thread_data *thread_func_args = (thread_data *)thread_param;
     int wait_lock, wait_unlock;
     //struct thread_data thread_param;
-    pthread_mutex_t my_mutex; 
+    //pthread_mutex_t mutex; 
     //struct thread_data* thread_func_args = (struct thread_data *) thread_param;
     // TODO: wait, obtain mutex, wait, release mutex as described by thread_data structure
     // hint: use a cast like the one below to obtain thread arguments from your parameter
     //struct thread_data* thread_func_args = (struct thread_data *) thread_param;
-    printf("Karl, Thread is running.\n");
+    //printf("Karl, Thread is running.\n");
     wait_lock = 1000*thread_func_args->wait_to_obtain_ms;
     usleep(wait_lock);
     // obtain mutex
-    pthread_mutex_lock(&my_mutex);
+    pthread_mutex_lock(thread_func_args->mutex);
     //clock_t start_time = clock();
     //while (clock() < start_time + wait_to_release_ms);
     wait_unlock = 1000*thread_func_args->wait_to_release_ms;
     usleep(wait_unlock);
     // release mutex
-    pthread_mutex_unlock(&my_mutex);
+    pthread_mutex_unlock(thread_func_args->mutex);
     printf("Karl, Thread is finished.\n");
     thread_func_args->thread_complete_success = true;
     return NULL;
 }
 bool start_thread_obtaining_mutex(pthread_t *thread, pthread_mutex_t *mutex,int wait_to_obtain_ms, int wait_to_release_ms)
 {
-    pthread_mutex_t my_mutex;
+    //pthread_mutex_t mutex;
     //struct thread_data thread_func_args;
     thread_data *thread_func_args = malloc(sizeof(thread_data));
     if (thread_func_args == NULL) {
@@ -47,7 +48,7 @@ bool start_thread_obtaining_mutex(pthread_t *thread, pthread_mutex_t *mutex,int 
         return 1;
     }
     
-    pthread_mutex_init(&my_mutex, NULL);
+    pthread_mutex_init(thread_func_args->mutex, NULL);
     /**
      * TODO: allocate memory for thread_data, setup mutex and wait arguments, pass thread_data to created thread
      * using threadfunc() as entry point.
@@ -65,6 +66,7 @@ bool start_thread_obtaining_mutex(pthread_t *thread, pthread_mutex_t *mutex,int 
     thread_func_args->thread_complete_success = false;
     index = 0;
     // Create a new thread
+    syslog(LOG_USER, "Assignment 4,  doing pthread_create");
     printf("Karl, Creating new thread\n");
     int threadfunctreturn = pthread_create(&threadID,   // pointer to thread descriptor
                             NULL,                       // use SPECIFIC SECHED_FIFO attributes
@@ -79,7 +81,7 @@ bool start_thread_obtaining_mutex(pthread_t *thread, pthread_mutex_t *mutex,int 
         printf("Error creating thread\n");
         return 1;
     }
-    pthread_mutex_destroy(&my_mutex);
+    pthread_mutex_destroy(thread_func_args->mutex);
     // Wait for the thread to finish
     pthread_join(threadID, NULL);
     printf("Karl, whole thing has finished.\n");
